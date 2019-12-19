@@ -1084,6 +1084,14 @@ public class SkylarkRepositoryContext
                     "Basic "
                         + Base64.getEncoder()
                             .encodeToString(credentials.getBytes(StandardCharsets.UTF_8))));
+          } else if ("oauth2".equals(authMap.get("type"))) {
+            if (!authMap.containsKey("token")) {
+              throw new EvalException(null, "Found request to do oauth2 auth for " + entry.getKey() + " without a 'token' being provided.");
+            }
+            String token = authMap.get("token").toString();
+            headers.put(url.toURI(), ImmutableMap.<String, String>of(
+                    "Authorization",
+                    "Bearer " + token));
           }
         }
       } catch (MalformedURLException e) {

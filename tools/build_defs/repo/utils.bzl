@@ -273,6 +273,7 @@ def read_netrc(ctx, filename):
                     "password",
                     "account",
                     "macdef",
+                    "oauth2-token",
                 ]:
                     # command takes one argument
                     cmd = token
@@ -325,5 +326,10 @@ def use_netrc(netrc, urls):
                 "type": "basic",
                 "login": authforhost["login"],
                 "password": authforhost["password"],
+            }
+        elif "oauth2-token" in authforhost:
+            auth[url] = {
+                "type": "oauth2",
+                "token": authforhost["oauth2-token"]
             }
     return auth
