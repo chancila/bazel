@@ -311,7 +311,7 @@ android_ndk_repository(
     api_level = 25,
 )
 EOF
-  bazel build @androidndk//:files >& $TEST_log && fail "Should have failed"
+  bazel build @androidndk//:files >& $TEST_log && fail "Should have failed" || true
   expect_log "Either the path attribute of android_ndk_repository"
 
   # Ensure that the prefix identifies the errant rule.
@@ -329,7 +329,7 @@ android_ndk_repository(
     path = "$TEST_TMPDIR/some_dir",
 )
 EOF
-  bazel build @androidndk//:files >& $TEST_log && fail "Should have failed"
+  bazel build @androidndk//:files >& $TEST_log && fail "Should have failed" || true
   expect_log "Unable to read the Android NDK at $TEST_TMPDIR/some_dir, the path may be invalid." \
     " Is the path in android_ndk_repository() or \$ANDROID_NDK_HOME set correctly?"
 }
@@ -510,6 +510,37 @@ function test_crosstool_libcpp_with_multiarch() {
     --host_crosstool_top=@bazel_tools//tools/cpp:toolchain
   check_num_sos
   check_soname
+}
+
+function test_android_ndk_repository_present_not_set() {
+  create_new_workspace
+  cat >> WORKSPACE <<EOF
+android_ndk_repository(
+    name = "androidndk",
+)
+EOF
+
+  mkdir -p a
+  cat > a/BUILD <<EOF
+package(default_visibility = ["//visibility:public"])
+sh_test(
+  name = 'helper',
+  srcs = [ 'helper.sh' ],
+)
+EOF
+
+  cat > a/helper.sh <<EOF
+#!/bin/sh
+exit 0
+EOF
+  chmod +x a/helper.sh
+
+  unset ANDROID_NDK_HOME
+  # We should be able to build non-android NDK targets without a valid NDK.
+  bazel build //a:helper || fail "Build failed"
+  # Trying to actually build android code repo should still fail.
+  create_android_binary
+  bazel build //java/bazel:bin --fat_apk_cpu=arm64-v8a && fail "Build should have failed" || true
 }
 
 run_suite "Android NDK integration tests"

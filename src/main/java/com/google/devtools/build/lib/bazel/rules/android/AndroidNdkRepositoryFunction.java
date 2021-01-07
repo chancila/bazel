@@ -37,6 +37,7 @@ import com.google.devtools.build.lib.packages.Rule;
 import com.google.devtools.build.lib.packages.Type;
 import com.google.devtools.build.lib.packages.semantics.BuildLanguageOptions;
 import com.google.devtools.build.lib.rules.repository.RepositoryDirectoryValue;
+import com.google.devtools.build.lib.rules.repository.RepositoryFunction;
 import com.google.devtools.build.lib.rules.repository.WorkspaceAttributeMapper;
 import com.google.devtools.build.lib.skyframe.DirectoryListingValue;
 import com.google.devtools.build.lib.skyframe.PrecomputedValue;
@@ -80,6 +81,15 @@ public class AndroidNdkRepositoryFunction extends AndroidRepositoryFunction {
   private static PathFragment getAndroidNdkHomeEnvironmentVar(
       Path workspace, Map<String, String> env) {
     return workspace.getRelative(PathFragment.create(env.get(PATH_ENV_VAR))).asFragment();
+  }
+
+  private static String getStringResource(String name) {
+    try {
+      return ResourceFileLoader.loadResource(
+          AndroidNdkRepositoryFunction.class, name);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private static String createBuildFile(
@@ -304,8 +314,13 @@ public class AndroidNdkRepositoryFunction extends AndroidRepositoryFunction {
     }
 
     Path ndkHome = directories.getOutputBase().getFileSystem().getPath(pathFragment);
-    if (!symlinkLocalRepositoryContents(ndkSymlinkTreeDirectory, ndkHome, userDefinedPath)) {
-      return null;
+    try {
+      symlinkLocalRepositoryContents(ndkSymlinkTreeDirectory, ndkHome, userDefinedPath);
+    } catch (RepositoryFunctionException e) {
+      // Write an empty BUILD file that declares errors when referred to.
+      String buildFile = getStringResource("android_ndk_repository_empty_template.txt");
+      writeBuildFile(outputDirectory, buildFile);
+      return RepositoryDirectoryValue.builder().setPath(outputDirectory);
     }
 
     String ruleName = rule.getName();

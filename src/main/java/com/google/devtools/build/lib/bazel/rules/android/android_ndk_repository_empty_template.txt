@@ -1,0 +1,34 @@
+package(default_visibility = ["//visibility:public"])
+
+# android_ndk_repository was used without a valid Android NDK being set.
+# Either the path attribute of android_ndk_repository or the ANDROID_NDK_HOME
+# environment variable must be set.
+# This is a minimal BUILD file to allow non-Android NDK builds to continue.
+
+filegroup(
+    name = "files",
+    srcs = [":error_message"],
+)
+
+filegroup(
+    name = "crosstool",
+    srcs = [":error_message"],
+)
+
+filegroup(
+    name = "default_crosstool",
+    srcs = [":error_message"],
+)
+
+genrule(
+    name = "invalid_android_ndk_repository_error",
+    outs = [
+        "error_message",
+        "error_message.jar",
+    ],
+    cmd = """echo \
+    android_ndk_repository was used without a valid Android NDK being set. \
+    Either the path attribute of android_ndk_repository or the ANDROID_NDK_HOME \
+    environment variable must be set. ; \
+    exit 1 """,
+)
